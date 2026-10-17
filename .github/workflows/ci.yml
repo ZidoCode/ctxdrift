@@ -1,0 +1,29 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.9", "3.11", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install pytest
+        run: pip install pytest
+      - name: Unit tests
+        run: pytest test_ctxdrift.py -q
+      - name: Stress test (zero crash required)
+        run: python3 stress_test.py
+      - name: E2E smoke — CLI runs
+        run: |
+          python3 ctxdrift.py --version
+          printf '%s\n' '{"type":"user","message":{"role":"user","content":"[CONTEXT COMPACTION] demo"}}' > /tmp/demo.jsonl
+          python3 ctxdrift.py /tmp/demo.jsonl --format json
