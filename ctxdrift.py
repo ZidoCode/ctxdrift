@@ -523,6 +523,7 @@ def main(argv=None) -> int:
     min_rank = SEV_ORDER[args.min_severity]  # fail=0 warn=1 info=2; keep rank <= min_rank
 
     agg_findings: list[Finding] = []
+    json_docs: list = []
     multi = len(paths) > 1
     code = EXIT_CLEAN
     for p in paths:
@@ -539,19 +540,16 @@ def main(argv=None) -> int:
         findings = [f for f in findings if SEV_ORDER[f.severity] <= min_rank]
         agg_findings.extend(findings)
         if args.format == "json":
-            doc = json.loads(report(events, compactions, findings, "json", p))
-            if multi:
-                print(doc)
-            else:
-                print(json.dumps(doc, ensure_ascii=False, indent=2))
+            json_docs.append(json.loads(report(events, compactions, findings, "json", p)))
         else:
             if multi:
                 print(f"\n### {p}")
             print(report(events, compactions, findings, "text", p))
         code = max(code, exit_code(findings))
 
-    if not agg_findings and args.format != "json":
-        pass  # per-file report already says so
+    if args.format == "json":
+        payload = json_docs if multi else (json_docs[0] if json_docs else {})
+        print(json.dumps(payload, ensure_ascii=False, indent=2))
     return code
 
 

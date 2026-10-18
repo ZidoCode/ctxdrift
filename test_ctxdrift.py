@@ -262,5 +262,22 @@ class TestCLI(unittest.TestCase):
         self.assertIn("ctxdrift", r.stdout + r.stderr)
 
 
+class TestJsonDirectoryMode(unittest.TestCase):
+    """--format json over a directory must emit valid JSON, not a dict repr."""
+
+    def test_directory_json_parses(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            for name in ("a.jsonl", "b.jsonl"):
+                write_jsonl([{"type": "user", "message": {"content": "hi"}}], tmp, name)
+            r = subprocess.run([sys.executable, "ctxdrift.py", tmp, "--format", "json"],
+                               capture_output=True, text=True,
+                               cwd=os.path.dirname(os.path.abspath(__file__)))
+            self.assertEqual(r.returncode, 0, r.stderr)
+            data = json.loads(r.stdout)
+            self.assertIsInstance(data, list)
+            self.assertEqual(len(data), 2)
+            self.assertEqual(data[0]["tool"], "ctxdrift")
+
+
 if __name__ == "__main__":
     unittest.main()
